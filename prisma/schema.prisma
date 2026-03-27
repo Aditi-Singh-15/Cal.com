@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum BookingStatus {
+  confirmed
+  cancelled
+}
+
+model User {
+  id                String             @id @default(uuid()) @db.Uuid
+  name              String
+  email             String             @unique
+  timezone          String
+  eventTypes        EventType[]
+  availabilityRules AvailabilityRule[]
+  hostBookings      Booking[]          @relation("HostBookings")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model EventType {
+  id              String    @id @default(uuid()) @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  title           String
+  description     String?
+  durationMinutes Int       @map("duration_minutes")
+  slug            String    @unique
+  isActive        Boolean   @default(true) @map("is_active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookings        Booking[]
+
+  @@index([userId])
+  @@map("event_types")
+}
+
+model AvailabilityRule {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  dayOfWeek   Int      @map("day_of_week")
+  startMinute Int      @map("start_minute")
+  endMinute   Int      @map("end_minute")
+  timezone    String
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, dayOfWeek])
+  @@map("availability_rules")
+}
+
+model Booking {
+  id          String        @id @default(uuid()) @db.Uuid
+  eventTypeId String        @map("event_type_id") @db.Uuid
+  hostUserId  String        @map("host_user_id") @db.Uuid
+  bookerName  String        @map("booker_name")
+  bookerEmail String        @map("booker_email")
+  startAt     DateTime      @map("start_at") @db.Timestamptz(6)
+  endAt       DateTime      @map("end_at") @db.Timestamptz(6)
+  status      BookingStatus @default(confirmed)
+  cancelledAt DateTime?     @map("cancelled_at") @db.Timestamptz(6)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  eventType   EventType     @relation(fields: [eventTypeId], references: [id], onDelete: Cascade)
+  hostUser    User          @relation("HostBookings", fields: [hostUserId], references: [id], onDelete: Cascade)
+
+  @@index([hostUserId, startAt])
+  @@index([eventTypeId])
+  @@index([status, startAt])
+  @@map("bookings")
+}

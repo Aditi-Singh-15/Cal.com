@@ -1,0 +1,32 @@
+{
+  "name": "cal-clone-scheduling-backend",
+  "version": "1.0.0",
+  "description": "Scheduling platform backend with PostgreSQL double-booking protection.",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "dev:api": "node --watch src/server.js",
+    "dev:web": "npm --prefix web run dev",
+    "start": "node src/server.js",
+    "build:web": "npm --prefix web run build",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate deploy",
+    "prisma:seed": "node prisma/seed.js",
+    "test": "vitest run"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.8.0",
+    "express": "^4.19.2",
+    "luxon": "^3.5.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "prisma": "^6.8.0",
+    "supertest": "^7.0.0",
+    "vitest": "^2.0.5"
+  }
+}

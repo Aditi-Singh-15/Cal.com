@@ -19,6 +19,7 @@ describeIfDatabase("booking flow integration", () => {
   beforeEach(async () => {
     await prisma.booking.deleteMany();
     await prisma.availabilityRule.deleteMany();
+    await prisma.availabilitySchedule.deleteMany();
     await prisma.eventType.deleteMany();
     await prisma.user.deleteMany({
       where: {
@@ -46,9 +47,19 @@ describeIfDatabase("booking flow integration", () => {
       },
     });
 
+    const schedule = await prisma.availabilitySchedule.create({
+      data: {
+        userId: host.id,
+        name: "Working hours",
+        timezone,
+        isDefault: true,
+      },
+    });
+
     await prisma.availabilityRule.createMany({
       data: [0, 1, 2, 3, 4, 5, 6].map((dayOfWeek) => ({
         userId: host.id,
+        scheduleId: schedule.id,
         dayOfWeek,
         startMinute: 9 * 60,
         endMinute: 17 * 60,

@@ -18,6 +18,7 @@ model User {
   email             String             @unique
   timezone          String
   eventTypes        EventType[]
+  availabilitySchedules AvailabilitySchedule[]
   availabilityRules AvailabilityRule[]
   hostBookings      Booking[]          @relation("HostBookings")
   createdAt         DateTime           @default(now()) @map("created_at")
@@ -46,6 +47,7 @@ model EventType {
 model AvailabilityRule {
   id          String   @id @default(uuid()) @db.Uuid
   userId      String   @map("user_id") @db.Uuid
+  scheduleId  String   @map("schedule_id") @db.Uuid
   dayOfWeek   Int      @map("day_of_week")
   startMinute Int      @map("start_minute")
   endMinute   Int      @map("end_minute")
@@ -53,9 +55,26 @@ model AvailabilityRule {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  schedule    AvailabilitySchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
 
   @@index([userId, dayOfWeek])
+  @@index([scheduleId, dayOfWeek])
   @@map("availability_rules")
+}
+
+model AvailabilitySchedule {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  name        String
+  timezone    String
+  isDefault   Boolean  @default(false) @map("is_default")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rules       AvailabilityRule[]
+
+  @@index([userId, isDefault])
+  @@map("availability_schedules")
 }
 
 model Booking {

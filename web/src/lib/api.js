@@ -62,14 +62,28 @@ export async function setEventTypeActive(id, isActive) {
   });
 }
 
-export async function getAvailability() {
-  return request("/api/availability");
+export async function getAvailability(scheduleId) {
+  const query = scheduleId ? `?scheduleId=${encodeURIComponent(scheduleId)}` : "";
+  return request(`/api/availability${query}`);
 }
 
-export async function updateAvailability(input) {
-  return request("/api/availability", {
+export async function createAvailabilitySchedule(name) {
+  return request("/api/availability/schedules", {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function updateAvailabilitySchedule(scheduleId, input) {
+  return request(`/api/availability/schedules/${scheduleId}`, {
     method: "PUT",
     body: JSON.stringify(input),
+  });
+}
+
+export async function deleteAvailabilitySchedule(scheduleId) {
+  return request(`/api/availability/schedules/${scheduleId}`, {
+    method: "DELETE",
   });
 }
 

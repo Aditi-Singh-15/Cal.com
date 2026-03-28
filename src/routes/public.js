@@ -4,7 +4,7 @@ import { prisma } from "../db.js";
 import { getAvailableSlotsForDate, isSlotInsideAvailability } from "../services/slots.js";
 import { isBookingOverlapError } from "../utils/prisma-errors.js";
 import { parseIsoInTimezone } from "../utils/time.js";
-import { bookingRequestSchema, slotsQuerySchema } from "../validation.js";
+import { bookingRequestSchema, calendarQuerySchema, slotsQuerySchema } from "../validation.js";
 
 const router = express.Router();
 
@@ -113,6 +113,63 @@ router.get("/:slug/slots", async (req, res, next) => {
         endAt: slot.endAt.toISO(),
         isAvailable: true,
       })),
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get("/:slug/calendar", async (req, res, next) => {
+  try {
+    const parsedQuery = calendarQuerySchema.safeParse(req.query);
+    if (!parsedQuery.success) {
+      return res.status(400).json({
+        code: "VALIDATION_ERROR",
+        message: zodIssuesToMessage(parsedQuery.error),
+      });
+    }
+
+    const eventType = await getEventTypeBySlug(req.params.slug);
+    if (!eventType || !eventType.isActive) {
+      return res.status(404).json({ code: "EVENT_TYPE_NOT_FOUND" });
+    }
+
+    const availability = await getAvailabilityRules(eventType.userId);
+    const displayTimezone = parsedQuery.data.tz ?? eventType.user.timezone;
+    const monthStart = DateTime.fromISO(`${parsedQuery.data.month}-01`, {
+      zone: displayTimezone,
+    }).startOf("day");
+
+    if (!monthStart.isValid) {
+      return res.status(422).json({
+        code: "INVALID_MONTH",
+        message: "month must be a valid calendar month",
+      });
+    }
+
+    const daysInMonth = monthStart.daysInMonth;
+    const dates = [];
+    for (let dayOffset = 0; dayOffset < daysInMonth; dayOffset += 1) {
+      const date = monthStart.plus({ days: dayOffset }).toISODate();
+      const slots = await getAvailableSlotsForDate({
+        prisma,
+        hostUserId: eventType.userId,
+        date,
+        displayTimezone,
+        hostTimezone: availability.timezone ?? eventType.user.timezone,
+        durationMinutes: eventType.durationMinutes,
+        availabilityRules: availability.rules,
+      });
+
+      if (slots && slots.length > 0) {
+        dates.push(date);
+      }
+    }
+
+    return res.json({
+      month: parsedQuery.data.month,
+      timezone: displayTimezone,
+      dates,
     });
   } catch (error) {
     return next(error);

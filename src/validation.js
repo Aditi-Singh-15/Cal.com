@@ -11,6 +11,11 @@ export const slotsQuerySchema = z.object({
   tz: timezoneSchema.optional(),
 });
 
+export const calendarQuerySchema = z.object({
+  month: z.string().regex(/^\d{4}-\d{2}$/, "month must be YYYY-MM"),
+  tz: timezoneSchema.optional(),
+});
+
 export const bookingRequestSchema = z.object({
   name: z.string().trim().min(1, "name is required").max(100, "name is too long"),
   email: z.string().trim().email("valid email is required"),

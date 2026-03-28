@@ -21,6 +21,13 @@ function toEventTypePayload(eventType) {
   };
 }
 
+function duplicateUrlError(res) {
+  return res.status(400).json({
+    code: "BAD_REQUEST",
+    message: "An event type with this URL already exists.",
+  });
+}
+
 async function getHostOr404(res) {
   const host = await getDefaultHost(prisma);
   if (!host) {
@@ -80,10 +87,7 @@ router.post("/", async (req, res, next) => {
       return res.status(201).json(toEventTypePayload(created));
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-        return res.status(409).json({
-          code: "SLUG_ALREADY_EXISTS",
-          message: "Event slug already exists",
-        });
+        return duplicateUrlError(res);
       }
 
       throw error;
@@ -124,10 +128,7 @@ router.patch("/:id", async (req, res, next) => {
       return res.json(toEventTypePayload(updated));
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-        return res.status(409).json({
-          code: "SLUG_ALREADY_EXISTS",
-          message: "Event slug already exists",
-        });
+        return duplicateUrlError(res);
       }
 
       throw error;

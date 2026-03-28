@@ -30,6 +30,7 @@ describeIfDatabase("admin api integration", () => {
 
     await prisma.booking.deleteMany({ where: { hostUserId: host.id } });
     await prisma.availabilityRule.deleteMany({ where: { userId: host.id } });
+    await prisma.availabilitySchedule.deleteMany({ where: { userId: host.id } });
     await prisma.eventType.deleteMany({ where: { userId: host.id } });
   });
 
@@ -80,26 +81,36 @@ describeIfDatabase("admin api integration", () => {
     expect(finalList.body).toHaveLength(0);
   });
 
-  it("supports availability read and replace update", async () => {
-    const putRes = await request(app).put("/api/availability").send({
+  it("supports schedule create and schedule save with multi-slots", async () => {
+    const createRes = await request(app).post("/api/availability/schedules").send({
+      name: "Study",
+    });
+    expect(createRes.status).toBe(201);
+    expect(createRes.body.name).toBe("Study");
+
+    const scheduleId = createRes.body.id;
+    const putRes = await request(app).put(`/api/availability/schedules/${scheduleId}`).send({
+      name: "Study",
       timezone: "Asia/Kolkata",
+      isDefault: true,
       rules: [
-        { dayOfWeek: 1, startMinute: 540, endMinute: 1020 },
-        { dayOfWeek: 2, startMinute: 540, endMinute: 1020 },
-        { dayOfWeek: 5, startMinute: 600, endMinute: 900 },
+        { dayOfWeek: 1, startMinute: 540, endMinute: 720 },
+        { dayOfWeek: 1, startMinute: 780, endMinute: 1020 },
+        { dayOfWeek: 2, startMinute: 600, endMinute: 900 },
       ],
     });
     expect(putRes.status).toBe(200);
     expect(putRes.body.timezone).toBe("Asia/Kolkata");
     expect(putRes.body.rules).toHaveLength(3);
 
-    const getRes = await request(app).get("/api/availability");
+    const getRes = await request(app).get("/api/availability").query({ scheduleId });
     expect(getRes.status).toBe(200);
-    expect(getRes.body.timezone).toBe("Asia/Kolkata");
-    expect(getRes.body.rules).toEqual([
-      { dayOfWeek: 1, startMinute: 540, endMinute: 1020 },
-      { dayOfWeek: 2, startMinute: 540, endMinute: 1020 },
-      { dayOfWeek: 5, startMinute: 600, endMinute: 900 },
+    expect(getRes.body.selectedSchedule.name).toBe("Study");
+    expect(getRes.body.selectedSchedule.timezone).toBe("Asia/Kolkata");
+    expect(getRes.body.selectedSchedule.rules).toEqual([
+      { dayOfWeek: 1, startMinute: 540, endMinute: 720 },
+      { dayOfWeek: 1, startMinute: 780, endMinute: 1020 },
+      { dayOfWeek: 2, startMinute: 600, endMinute: 900 },
     ]);
   });
 

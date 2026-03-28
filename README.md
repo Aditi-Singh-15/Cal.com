@@ -103,13 +103,13 @@ Then open:
 
 ## NPM Scripts
 
-- `npm run dev:api` → start backend in watch mode
-- `npm run dev:web` → start React/Vite frontend
-- `npm run build:web` → production build for frontend
-- `npm run prisma:generate` → generate Prisma client
-- `npm run prisma:migrate` → apply Prisma migrations
-- `npm run prisma:seed` → seed default host/events/bookings
-- `npm test` → run API integration tests
+- `npm run dev:api` -> start backend in watch mode
+- `npm run dev:web` -> start React/Vite frontend
+- `npm run build:web` -> production build for frontend
+- `npm run prisma:generate` -> generate Prisma client
+- `npm run prisma:migrate` -> apply Prisma migrations
+- `npm run prisma:seed` -> seed default host/events/bookings
+- `npm test` -> run API integration tests
 
 ## Sample Seed Data
 
@@ -128,8 +128,10 @@ Then open:
 - `PATCH /api/event-types/:id`
 - `DELETE /api/event-types/:id`
 - `PATCH /api/event-types/:id/active`
-- `GET /api/availability`
-- `PUT /api/availability`
+- `GET /api/availability?scheduleId=<id>`
+- `POST /api/availability/schedules`
+- `PUT /api/availability/schedules/:id`
+- `DELETE /api/availability/schedules/:id`
 - `GET /api/bookings?scope=upcoming|past|cancelled|all`
 - `GET /api/bookings/:id`
 - `POST /api/bookings/:id/cancel`
@@ -172,7 +174,7 @@ Covered scenarios:
 - Slot listing hides booked slots
 - Timezone conversion persists UTC correctly
 - Event type CRUD and active toggle
-- Availability save/read round-trip
+- Availability schedule create + save round-trip
 - Bookings scope filtering (upcoming/past/cancelled/all)
 
 ## Assumptions
@@ -181,4 +183,5 @@ Covered scenarios:
 - Booking conflicts are host-wide (not event-type-only)
 - All stored booking times are UTC (`timestamptz`)
 - Slot boundaries are half-open `[start, end)` to allow adjacent meetings
+- Availability supports multiple named schedules and multiple slots per day
 - Admin sidebar intentionally includes only Event types, Bookings, and Availability

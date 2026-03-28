@@ -31,6 +31,7 @@ async function main() {
   await prisma.$transaction([
     prisma.booking.deleteMany({ where: { hostUserId: host.id } }),
     prisma.availabilityRule.deleteMany({ where: { userId: host.id } }),
+    prisma.availabilitySchedule.deleteMany({ where: { userId: host.id } }),
     prisma.eventType.deleteMany({ where: { userId: host.id } }),
   ]);
 
@@ -56,9 +57,19 @@ async function main() {
     },
   });
 
+  const defaultSchedule = await prisma.availabilitySchedule.create({
+    data: {
+      userId: host.id,
+      name: "Working hours",
+      timezone: host.timezone,
+      isDefault: true,
+    },
+  });
+
   await prisma.availabilityRule.createMany({
     data: [1, 2, 3, 4, 5].map((dayOfWeek) => ({
       userId: host.id,
+      scheduleId: defaultSchedule.id,
       dayOfWeek,
       startMinute: 9 * 60,
       endMinute: 17 * 60,

@@ -50,13 +50,26 @@ const availabilityRuleSchema = z.object({
   endMinute: z.number().int().min(1).max(1440),
 });
 
-export const availabilityUpdateSchema = z
+const uuidSchema = z.string().uuid("Invalid id");
+
+export const availabilityQuerySchema = z.object({
+  scheduleId: uuidSchema.optional(),
+});
+
+export const availabilityScheduleCreateSchema = z.object({
+  name: z.string().trim().min(1, "name is required").max(80, "name is too long"),
+});
+
+export const availabilityScheduleUpdateSchema = z
   .object({
+    name: z.string().trim().min(1, "name is required").max(80, "name is too long"),
     timezone: timezoneSchema,
-    rules: z.array(availabilityRuleSchema).max(7),
+    isDefault: z.boolean(),
+    rules: z.array(availabilityRuleSchema).max(70),
   })
   .superRefine((value, ctx) => {
-    const seenDays = new Set();
+    const byDay = new Map();
+
     for (const rule of value.rules) {
       if (rule.endMinute <= rule.startMinute) {
         ctx.addIssue({
@@ -65,13 +78,31 @@ export const availabilityUpdateSchema = z
         });
       }
 
-      if (seenDays.has(rule.dayOfWeek)) {
+      if (rule.startMinute % 15 !== 0 || rule.endMinute % 15 !== 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: `Duplicate dayOfWeek ${rule.dayOfWeek} in rules`,
+          message: `startMinute and endMinute must be 15-minute intervals for day ${rule.dayOfWeek}`,
         });
       }
-      seenDays.add(rule.dayOfWeek);
+
+      if (!byDay.has(rule.dayOfWeek)) {
+        byDay.set(rule.dayOfWeek, []);
+      }
+      byDay.get(rule.dayOfWeek).push(rule);
+    }
+
+    for (const [dayOfWeek, rules] of byDay) {
+      const sortedRules = [...rules].sort((a, b) => a.startMinute - b.startMinute);
+      for (let index = 1; index < sortedRules.length; index += 1) {
+        const previous = sortedRules[index - 1];
+        const current = sortedRules[index];
+        if (current.startMinute < previous.endMinute) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Overlapping time slots are not allowed for day ${dayOfWeek}`,
+          });
+        }
+      }
     }
   });
 

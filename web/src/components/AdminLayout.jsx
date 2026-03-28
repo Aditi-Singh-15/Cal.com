@@ -14,7 +14,7 @@ export default function AdminLayout() {
           <div className="avatar">A</div>
           <div>
             <p className="profile-name">Aditi Singh</p>
-            <p className="profile-subtitle">Cal Clone</p>
+            <p className="profile-subtitle">Cal</p>
           </div>
         </div>
         <nav className="sidebar-nav">

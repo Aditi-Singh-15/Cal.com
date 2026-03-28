@@ -20,10 +20,31 @@ async function getEventTypeBySlug(slug) {
 }
 
 async function getAvailabilityRules(userId) {
-  return prisma.availabilityRule.findMany({
-    where: { userId },
-    orderBy: [{ dayOfWeek: "asc" }, { startMinute: "asc" }],
+  const defaultSchedule = await prisma.availabilitySchedule.findFirst({
+    where: { userId, isDefault: true },
+    include: {
+      rules: {
+        orderBy: [{ dayOfWeek: "asc" }, { startMinute: "asc" }],
+      },
+    },
   });
+
+  const schedule =
+    defaultSchedule ??
+    (await prisma.availabilitySchedule.findFirst({
+      where: { userId },
+      include: {
+        rules: {
+          orderBy: [{ dayOfWeek: "asc" }, { startMinute: "asc" }],
+        },
+      },
+      orderBy: { createdAt: "asc" },
+    }));
+
+  return {
+    timezone: schedule?.timezone ?? null,
+    rules: schedule?.rules ?? [],
+  };
 }
 
 router.get("/:slug", async (req, res, next) => {
@@ -32,6 +53,7 @@ router.get("/:slug", async (req, res, next) => {
     if (!eventType || !eventType.isActive) {
       return res.status(404).json({ code: "EVENT_TYPE_NOT_FOUND" });
     }
+    const availability = await getAvailabilityRules(eventType.userId);
 
     return res.json({
       id: eventType.id,
@@ -41,7 +63,7 @@ router.get("/:slug", async (req, res, next) => {
       durationMinutes: eventType.durationMinutes,
       host: {
         name: eventType.user.name,
-        timezone: eventType.user.timezone,
+        timezone: availability.timezone ?? eventType.user.timezone,
       },
     });
   } catch (error) {
@@ -64,16 +86,16 @@ router.get("/:slug/slots", async (req, res, next) => {
       return res.status(404).json({ code: "EVENT_TYPE_NOT_FOUND" });
     }
 
-    const availabilityRules = await getAvailabilityRules(eventType.userId);
+    const availability = await getAvailabilityRules(eventType.userId);
     const displayTimezone = parsedQuery.data.tz ?? eventType.user.timezone;
     const slots = await getAvailableSlotsForDate({
       prisma,
       hostUserId: eventType.userId,
       date: parsedQuery.data.date,
       displayTimezone,
-      hostTimezone: eventType.user.timezone,
+      hostTimezone: availability.timezone ?? eventType.user.timezone,
       durationMinutes: eventType.durationMinutes,
-      availabilityRules,
+      availabilityRules: availability.rules,
     });
 
     if (slots === null) {
@@ -129,12 +151,12 @@ router.post("/:slug/bookings", async (req, res, next) => {
       });
     }
 
-    const availabilityRules = await getAvailabilityRules(eventType.userId);
+    const availability = await getAvailabilityRules(eventType.userId);
     const insideAvailability = isSlotInsideAvailability({
       startUtc,
       durationMinutes: eventType.durationMinutes,
-      hostTimezone: eventType.user.timezone,
-      availabilityRules,
+      hostTimezone: availability.timezone ?? eventType.user.timezone,
+      availabilityRules: availability.rules,
     });
 
     if (!insideAvailability) {

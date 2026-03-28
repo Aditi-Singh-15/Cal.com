@@ -120,7 +120,7 @@ export default function PublicBookingPage() {
           <h1>{eventType.title}</h1>
           <p className="muted">{eventType.description || "Book a time slot."}</p>
           <p className="muted">
-            Duration: {eventType.durationMinutes}m • Timezone: {eventType.host.timezone}
+            Duration: {eventType.durationMinutes}m - Timezone: {eventType.host.timezone}
           </p>
 
           <label>

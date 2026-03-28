@@ -84,7 +84,7 @@ export default function BookingsPage() {
               <div>
                 <h3>{booking.eventTitle}</h3>
                 <p className="muted">
-                  {booking.bookerName} • {booking.bookerEmail}
+                  {booking.bookerName} - {booking.bookerEmail}
                 </p>
                 <p>{formatDateTime(booking.startAt)}</p>
               </div>

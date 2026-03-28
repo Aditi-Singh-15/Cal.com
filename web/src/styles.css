@@ -221,6 +221,75 @@ textarea {
   flex-wrap: wrap;
 }
 
+.event-actions-menu {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.event-action-button {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #0b0d12;
+  color: #d6dae2;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.event-action-button:hover {
+  background: #161a22;
+  color: #ffffff;
+}
+
+.event-action-button svg {
+  width: 18px;
+  height: 18px;
+}
+
+.event-action-menu-wrapper {
+  position: relative;
+}
+
+.event-action-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  min-width: 160px;
+  background: #0b0d12;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 6px;
+  display: grid;
+  gap: 4px;
+  z-index: 20;
+}
+
+.event-action-item {
+  border: none;
+  background: transparent;
+  color: #d6dae2;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.event-action-item:hover {
+  background: #1a1e27;
+  color: #ffffff;
+}
+
+.event-action-item.danger {
+  color: #ff8f8f;
+}
+
+.event-action-item.danger:hover {
+  background: #2a1118;
+}
+
 .muted {
   color: var(--muted);
 }
@@ -794,6 +863,10 @@ textarea {
   gap: 16px;
 }
 
+.public-grid.two-column {
+  grid-template-columns: 1.1fr 1fr;
+}
+
 .public-card {
   background: var(--panel);
   border: 1px solid var(--border);
@@ -807,6 +880,138 @@ textarea {
 .public-card h1,
 .public-card h2 {
   margin: 0;
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.calendar-header h2 {
+  font-size: 20px;
+}
+
+.calendar-nav {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #0b0d12;
+  color: #d6dae2;
+  cursor: pointer;
+}
+
+.calendar-nav:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.calendar-weekdays span {
+  text-align: center;
+  padding: 6px 0;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.calendar-cell {
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: #0b0d12;
+  color: #d6dae2;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.calendar-cell:hover {
+  border-color: #2a2f3a;
+}
+
+.calendar-cell.disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.calendar-cell.selected {
+  border-color: #ffffff;
+  background: #1b1f29;
+  color: #ffffff;
+}
+
+.calendar-cell.empty {
+  background: transparent;
+  border: none;
+  cursor: default;
+}
+
+.slots-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.public-card.slots-card {
+  max-height: 520px;
+}
+
+.slot-list-scroll {
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.time-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.time-toggle-button {
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.time-toggle-button.active {
+  background: #20242d;
+  color: #ffffff;
+}
+
+.slot-form {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.slot-form h3 {
+  margin: 0;
+}
+
+.slot-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .slot-list {
@@ -823,9 +1028,108 @@ textarea {
   background: #20242d;
 }
 
+.back-link {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 14px;
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+
+.back-link:hover {
+  color: #ffffff;
+}
+
 .confirmation {
-  width: min(560px, 100%);
+  width: min(720px, 100%);
   margin: 0 auto;
+  text-align: center;
+  gap: 14px;
+  padding: 32px 36px;
+}
+
+.confirmation-check {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #1f4d2f;
+  color: #8ef0b5;
+  display: grid;
+  place-items: center;
+  font-size: 28px;
+  margin: 0 auto;
+}
+
+.confirmation-divider {
+  height: 1px;
+  background: #242830;
+  width: 100%;
+}
+
+.confirmation-rows {
+  display: grid;
+  gap: 18px;
+  text-align: left;
+}
+
+.confirmation-row {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 16px;
+}
+
+.confirmation-label {
+  color: var(--muted);
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+
+.confirmation-value {
+  display: grid;
+  gap: 6px;
+}
+
+.confirmation-person {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.host-pill {
+  background: #2d3b73;
+  color: #c8d4ff;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.confirmation-footer {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: var(--muted);
+}
+
+.external-link {
+  font-size: 12px;
+  margin-left: 6px;
+}
+
+.link-button {
+  border: none;
+  background: transparent;
+  color: #d6dae2;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.link-button:hover {
+  color: #ffffff;
 }
 
 .confirmation-details p {

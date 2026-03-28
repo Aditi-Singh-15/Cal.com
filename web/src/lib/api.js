@@ -111,6 +111,11 @@ export async function getPublicSlots(slug, date, timezone) {
   return request(`/api/public/${slug}/slots?${query.toString()}`);
 }
 
+export async function getPublicCalendar(slug, month, timezone) {
+  const query = new URLSearchParams({ month, tz: timezone });
+  return request(`/api/public/${slug}/calendar?${query.toString()}`);
+}
+
 export async function createPublicBooking(slug, input) {
   return request(`/api/public/${slug}/bookings`, {
     method: "POST",

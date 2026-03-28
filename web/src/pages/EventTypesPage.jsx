@@ -81,6 +81,7 @@ export default function EventTypesPage() {
   const [isDescriptionEmpty, setIsDescriptionEmpty] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [menuOpenId, setMenuOpenId] = useState(null);
   const descriptionEditorRef = useRef(null);
 
   async function loadEventTypes() {
@@ -205,12 +206,17 @@ export default function EventTypesPage() {
   }
 
   async function handleCopyLink(slug) {
-    const link = `${URL_PREFIX}${slug}`;
+    const link = `${window.location.origin}${PUBLIC_PATH_PREFIX}${slug}`;
     try {
       await navigator.clipboard.writeText(link);
     } catch {
       setError("Unable to copy link to clipboard");
     }
+  }
+
+  function handleOpenBooking(slug) {
+    const link = `${window.location.origin}${PUBLIC_PATH_PREFIX}${slug}`;
+    window.open(link, "_blank", "noopener,noreferrer");
   }
 
   function handleDescriptionInput(event) {
@@ -252,6 +258,21 @@ export default function EventTypesPage() {
     editor.innerHTML = safeDescription;
     setIsDescriptionEmpty(!hasDescriptionText(safeDescription));
   }, [mode, editingId]);
+
+  useEffect(() => {
+    if (!menuOpenId) {
+      return;
+    }
+
+    function handleCloseMenu(event) {
+      if (!event.target.closest(".event-actions-menu")) {
+        setMenuOpenId(null);
+      }
+    }
+
+    document.addEventListener("click", handleCloseMenu);
+    return () => document.removeEventListener("click", handleCloseMenu);
+  }, [menuOpenId]);
 
   const generatedSlug = useMemo(() => toSlug(form.title), [form.title]);
   const urlPreview = `${URL_PREFIX}${generatedSlug}`;
@@ -307,19 +328,84 @@ export default function EventTypesPage() {
                   />
                   <span className="slider" />
                 </label>
-                <button type="button" className="ghost-button" onClick={() => openEditModal(item)}>
-                  Edit
-                </button>
-                <button type="button" className="ghost-button" onClick={() => handleCopyLink(item.slug)}>
-                  Copy link
-                </button>
-                <button
-                  type="button"
-                  className="ghost-button danger"
-                  onClick={() => setDeleteTarget(item)}
-                >
-                  Delete
-                </button>
+                <div className="event-actions-menu">
+                  <button
+                    type="button"
+                    className="event-action-button"
+                    onClick={() => handleOpenBooking(item.slug)}
+                    aria-label="Open booking page"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M7 7h6a1 1 0 0 0 0-2H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a1 1 0 1 0-2 0v6H7V7Z"
+                        fill="currentColor"
+                      />
+                      <path
+                        d="M14 5h5v5a1 1 0 1 0 2 0V4a1 1 0 0 0-1-1h-6a1 1 0 1 0 0 2Z"
+                        fill="currentColor"
+                      />
+                      <path
+                        d="M20.707 3.293a1 1 0 0 0-1.414 0L11 11.586a1 1 0 0 0 1.414 1.414L20.707 4.707a1 1 0 0 0 0-1.414Z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    className="event-action-button"
+                    onClick={() => handleCopyLink(item.slug)}
+                    aria-label="Copy booking link"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M9 9a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2V9Z"
+                        fill="currentColor"
+                      />
+                      <path
+                        d="M7 5a2 2 0 0 1 2-2h6a1 1 0 1 1 0 2H9v10a1 1 0 1 1-2 0V5Z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                  </button>
+                  <div className="event-action-menu-wrapper">
+                    <button
+                      type="button"
+                      className="event-action-button"
+                      onClick={() => setMenuOpenId(menuOpenId === item.id ? null : item.id)}
+                      aria-label="More actions"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="6" cy="12" r="2" fill="currentColor" />
+                        <circle cx="12" cy="12" r="2" fill="currentColor" />
+                        <circle cx="18" cy="12" r="2" fill="currentColor" />
+                      </svg>
+                    </button>
+                    {menuOpenId === item.id ? (
+                      <div className="event-action-dropdown">
+                        <button
+                          type="button"
+                          className="event-action-item"
+                          onClick={() => {
+                            setMenuOpenId(null);
+                            openEditModal(item);
+                          }}
+                        >
+                          Edit event
+                        </button>
+                        <button
+                          type="button"
+                          className="event-action-item danger"
+                          onClick={() => {
+                            setMenuOpenId(null);
+                            setDeleteTarget(item);
+                          }}
+                        >
+                          Delete event
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
               </div>
             </article>
           ))}

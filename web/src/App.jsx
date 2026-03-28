@@ -14,9 +14,10 @@ export default function App() {
       <Route element={<AdminLayout />}>
         <Route path="/event-types" element={<EventTypesPage />} />
         <Route path="/bookings" element={<BookingsPage />} />
-        <Route path="/availability" element={<AvailabilityPage />} />
-      </Route>
+      <Route path="/availability" element={<AvailabilityPage />} />
+    </Route>
 
+      <Route path="/aditi-singh-y8hgdr/:slug" element={<PublicBookingPage />} />
       <Route path="/book/:slug" element={<PublicBookingPage />} />
       <Route path="/book/:slug/confirmation/:bookingId" element={<BookingConfirmationPage />} />
     </Routes>

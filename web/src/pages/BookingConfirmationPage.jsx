@@ -1,15 +1,18 @@
-import { useEffect, useState } from "react";
-import { useLocation, useParams } from "react-router-dom";
-import { getBookingById, getPublicEvent } from "../lib/api";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { cancelBooking, getBookingById, getPublicEvent } from "../lib/api";
 import { formatDateTime } from "../lib/time";
 
 export default function BookingConfirmationPage() {
   const { slug, bookingId } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const [booking, setBooking] = useState(location.state?.booking ?? null);
   const [eventType, setEventType] = useState(location.state?.eventType ?? null);
   const [loading, setLoading] = useState(!booking || !eventType);
   const [error, setError] = useState("");
+  const [cancelling, setCancelling] = useState(false);
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
     async function loadDetails() {
@@ -36,27 +39,100 @@ export default function BookingConfirmationPage() {
     loadDetails();
   }, [booking, eventType, bookingId, slug]);
 
+  const whenLabel = useMemo(() => {
+    if (!booking || !eventType) {
+      return "";
+    }
+    return formatDateTime(booking.startAt, eventType.host.timezone);
+  }, [booking, eventType]);
+
+  async function handleCancel() {
+    if (!booking) {
+      return;
+    }
+    try {
+      setCancelling(true);
+      setError("");
+      await cancelBooking(booking.id);
+      setNotice("Booking cancelled.");
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setCancelling(false);
+    }
+  }
+
   return (
     <section className="public-page">
+      <button type="button" className="back-link" onClick={() => navigate("/bookings")}>
+        ← Back to bookings
+      </button>
+
       <div className="public-card confirmation">
-        <h1>Booking confirmed</h1>
+        <div className="confirmation-check">✓</div>
+        <h1>This meeting is scheduled</h1>
+        <p className="muted">
+          We sent an email with a calendar invitation with the details to everyone.
+        </p>
         {loading ? <p className="muted">Loading booking details...</p> : null}
         {error ? <div className="inline-error">{error}</div> : null}
+        {notice ? <div className="inline-success">{notice}</div> : null}
         {!loading && !error && booking && eventType ? (
-          <div className="confirmation-details">
-            <p>
-              <strong>Event:</strong> {eventType.title}
-            </p>
-            <p>
-              <strong>When:</strong> {formatDateTime(booking.startAt, eventType.host.timezone)}
-            </p>
-            <p>
-              <strong>Booked by:</strong> {booking.bookerName} ({booking.bookerEmail})
-            </p>
-            <p>
-              <strong>Status:</strong> {booking.status}
-            </p>
-          </div>
+          <>
+            <div className="confirmation-divider" />
+            <div className="confirmation-rows">
+              <div className="confirmation-row">
+                <span className="confirmation-label">What</span>
+                <span className="confirmation-value">
+                  {eventType.title} between {eventType.host.name} and {booking.bookerName}
+                </span>
+              </div>
+              <div className="confirmation-row">
+                <span className="confirmation-label">When</span>
+                <span className="confirmation-value">{whenLabel}</span>
+              </div>
+              <div className="confirmation-row">
+                <span className="confirmation-label">Who</span>
+                <span className="confirmation-value">
+                  <div className="confirmation-person">
+                    <span>{eventType.host.name}</span>
+                    <span className="host-pill">Host</span>
+                  </div>
+                  <span className="muted">{eventType.host.email}</span>
+                  <div className="confirmation-person">
+                    <span>{booking.bookerName}</span>
+                  </div>
+                  <span className="muted">{booking.bookerEmail}</span>
+                </span>
+              </div>
+              <div className="confirmation-row">
+                <span className="confirmation-label">Where</span>
+                <span className="confirmation-value">
+                  Cal Video <span className="external-link">↗</span>
+                </span>
+              </div>
+            </div>
+            <div className="confirmation-divider" />
+            <div className="confirmation-footer">
+              <span>Need to make a change?</span>
+              <button
+                type="button"
+                className="link-button"
+                onClick={() => navigate(`/aditi-singh-y8hgdr/${slug}?reschedule=true`)}
+              >
+                Reschedule
+              </button>
+              <span>or</span>
+              <button
+                type="button"
+                className="link-button"
+                onClick={handleCancel}
+                disabled={cancelling}
+              >
+                {cancelling ? "Cancelling..." : "Cancel"}
+              </button>
+            </div>
+          </>
         ) : null}
       </div>
     </section>

@@ -4,4 +4,5 @@ export const config = {
   defaultHostEmail: process.env.DEFAULT_HOST_EMAIL ?? "host@calclone.local",
   defaultHostPassword: process.env.DEFAULT_HOST_PASSWORD ?? "password123",
   sessionDays: Number(process.env.SESSION_DAYS ?? 7),
+  frontendOrigin: process.env.FRONTEND_ORIGIN ?? "",
 };

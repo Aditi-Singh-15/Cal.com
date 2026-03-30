@@ -6,6 +6,7 @@ async function request(path, options = {}) {
       "Content-Type": "application/json",
       ...(options.headers ?? {}),
     },
+    credentials: "include",
     ...options,
   });
 
@@ -96,28 +97,62 @@ export async function getBookingById(id) {
   return request(`/api/bookings/${id}`);
 }
 
+export async function getPublicBookingById(handle, slug, id) {
+  return request(`/api/public/${handle}/${slug}/bookings/${id}`);
+}
+
 export async function cancelBooking(id) {
   return request(`/api/bookings/${id}/cancel`, {
     method: "POST",
   });
 }
 
-export async function getPublicEvent(slug) {
-  return request(`/api/public/${slug}`);
+export async function cancelPublicBooking(handle, slug, id) {
+  return request(`/api/public/${handle}/${slug}/bookings/${id}/cancel`, {
+    method: "POST",
+  });
 }
 
-export async function getPublicSlots(slug, date, timezone) {
+export async function login(input) {
+  return request("/api/auth/login", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function signup(input) {
+  return request("/api/auth/signup", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function logout() {
+  return request("/api/auth/logout", {
+    method: "POST",
+  });
+}
+
+export async function getAuthMe() {
+  return request("/api/auth/me");
+}
+
+export async function getPublicEvent(handle, slug) {
+  return request(`/api/public/${handle}/${slug}`);
+}
+
+export async function getPublicSlots(handle, slug, date, timezone) {
   const query = new URLSearchParams({ date, tz: timezone });
-  return request(`/api/public/${slug}/slots?${query.toString()}`);
+  return request(`/api/public/${handle}/${slug}/slots?${query.toString()}`);
 }
 
-export async function getPublicCalendar(slug, month, timezone) {
+export async function getPublicCalendar(handle, slug, month, timezone) {
   const query = new URLSearchParams({ month, tz: timezone });
-  return request(`/api/public/${slug}/calendar?${query.toString()}`);
+  return request(`/api/public/${handle}/${slug}/calendar?${query.toString()}`);
 }
 
-export async function createPublicBooking(slug, input) {
-  return request(`/api/public/${slug}/bookings`, {
+export async function createPublicBooking(handle, slug, input) {
+  return request(`/api/public/${handle}/${slug}/bookings`, {
     method: "POST",
     body: JSON.stringify(input),
   });

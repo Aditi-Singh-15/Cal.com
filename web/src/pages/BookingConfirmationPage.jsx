@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { cancelBooking, getBookingById, getPublicEvent } from "../lib/api";
+import { cancelPublicBooking, getPublicBookingById, getPublicEvent } from "../lib/api";
 import { formatDateTime } from "../lib/time";
 
 export default function BookingConfirmationPage() {
-  const { slug, bookingId } = useParams();
+  const { handle, slug, bookingId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const [booking, setBooking] = useState(location.state?.booking ?? null);
@@ -24,8 +24,8 @@ export default function BookingConfirmationPage() {
         setLoading(true);
         setError("");
         const [bookingData, eventData] = await Promise.all([
-          booking ? Promise.resolve(booking) : getBookingById(bookingId),
-          eventType ? Promise.resolve(eventType) : getPublicEvent(slug),
+          booking ? Promise.resolve(booking) : getPublicBookingById(handle, slug, bookingId),
+          eventType ? Promise.resolve(eventType) : getPublicEvent(handle, slug),
         ]);
         setBooking(bookingData);
         setEventType(eventData);
@@ -37,14 +37,22 @@ export default function BookingConfirmationPage() {
     }
 
     loadDetails();
-  }, [booking, eventType, bookingId, slug]);
+  }, [booking, eventType, bookingId, handle, slug]);
+
+  const hostInfo = booking?.host ?? (booking
+    ? {
+        name: booking.hostName ?? eventType?.host?.name,
+        email: booking.hostEmail ?? eventType?.host?.email,
+        timezone: booking.hostTimezone ?? eventType?.host?.timezone,
+      }
+    : eventType?.host ?? null);
 
   const whenLabel = useMemo(() => {
-    if (!booking || !eventType) {
+    if (!booking || !hostInfo) {
       return "";
     }
-    return formatDateTime(booking.startAt, eventType.host.timezone);
-  }, [booking, eventType]);
+    return formatDateTime(booking.startAt, hostInfo.timezone);
+  }, [booking, hostInfo]);
 
   async function handleCancel() {
     if (!booking) {
@@ -53,7 +61,7 @@ export default function BookingConfirmationPage() {
     try {
       setCancelling(true);
       setError("");
-      await cancelBooking(booking.id);
+      await cancelPublicBooking(handle, slug, booking.id);
       setNotice("Booking cancelled.");
     } catch (requestError) {
       setError(requestError.message);
@@ -84,7 +92,7 @@ export default function BookingConfirmationPage() {
               <div className="confirmation-row">
                 <span className="confirmation-label">What</span>
                 <span className="confirmation-value">
-                  {eventType.title} between {eventType.host.name} and {booking.bookerName}
+                  {eventType.title} between {hostInfo?.name ?? "Host"} and {booking.bookerName}
                 </span>
               </div>
               <div className="confirmation-row">
@@ -95,10 +103,10 @@ export default function BookingConfirmationPage() {
                 <span className="confirmation-label">Who</span>
                 <span className="confirmation-value">
                   <div className="confirmation-person">
-                    <span>{eventType.host.name}</span>
+                    <span>{hostInfo?.name ?? "Host"}</span>
                     <span className="host-pill">Host</span>
                   </div>
-                  <span className="muted">{eventType.host.email}</span>
+                  <span className="muted">{hostInfo?.email ?? ""}</span>
                   <div className="confirmation-person">
                     <span>{booking.bookerName}</span>
                   </div>
@@ -118,7 +126,7 @@ export default function BookingConfirmationPage() {
               <button
                 type="button"
                 className="link-button"
-                onClick={() => navigate(`/aditi-singh-y8hgdr/${slug}?reschedule=true`)}
+              onClick={() => navigate(`/${handle}/${slug}?reschedule=true`)}
               >
                 Reschedule
               </button>

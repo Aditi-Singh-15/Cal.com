@@ -1,6 +1,5 @@
 import express from "express";
 import { prisma } from "../db.js";
-import { getDefaultHost } from "../services/default-host.js";
 import {
   availabilityQuerySchema,
   availabilityScheduleCreateSchema,
@@ -65,16 +64,6 @@ function toScheduleDetail(schedule) {
   };
 }
 
-async function getHostOr404(res) {
-  const host = await getDefaultHost(prisma);
-  if (!host) {
-    res.status(404).json({ code: "DEFAULT_HOST_NOT_FOUND" });
-    return null;
-  }
-
-  return host;
-}
-
 async function getSchedulesForHost(userId) {
   return prisma.availabilitySchedule.findMany({
     where: { userId },
@@ -118,10 +107,7 @@ async function ensureAtLeastOneSchedule(host) {
 
 router.get("/", async (req, res, next) => {
   try {
-    const host = await getHostOr404(res);
-    if (!host) {
-      return;
-    }
+    const host = req.user;
 
     const parsedQuery = availabilityQuerySchema.safeParse(req.query);
     if (!parsedQuery.success) {
@@ -151,10 +137,7 @@ router.get("/", async (req, res, next) => {
 
 router.post("/schedules", async (req, res, next) => {
   try {
-    const host = await getHostOr404(res);
-    if (!host) {
-      return;
-    }
+    const host = req.user;
 
     const parsedBody = availabilityScheduleCreateSchema.safeParse(req.body);
     if (!parsedBody.success) {
@@ -201,10 +184,7 @@ router.post("/schedules", async (req, res, next) => {
 
 router.put("/schedules/:id", async (req, res, next) => {
   try {
-    const host = await getHostOr404(res);
-    if (!host) {
-      return;
-    }
+    const host = req.user;
 
     const parsedBody = availabilityScheduleUpdateSchema.safeParse(req.body);
     if (!parsedBody.success) {
@@ -290,10 +270,7 @@ router.put("/schedules/:id", async (req, res, next) => {
 
 router.delete("/schedules/:id", async (req, res, next) => {
   try {
-    const host = await getHostOr404(res);
-    if (!host) {
-      return;
-    }
+    const host = req.user;
 
     const existing = await prisma.availabilitySchedule.findFirst({
       where: { id: req.params.id, userId: host.id },

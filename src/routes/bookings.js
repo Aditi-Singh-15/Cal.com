@@ -1,7 +1,6 @@
 import express from "express";
 import { DateTime } from "luxon";
 import { prisma } from "../db.js";
-import { getDefaultHost } from "../services/default-host.js";
 import { bookingsQuerySchema } from "../validation.js";
 
 const router = express.Router();
@@ -35,10 +34,7 @@ router.get("/", async (req, res, next) => {
       });
     }
 
-    const host = await getDefaultHost(prisma);
-    if (!host) {
-      return res.status(404).json({ code: "DEFAULT_HOST_NOT_FOUND" });
-    }
+    const host = req.user;
 
     const scope = parsedQuery.data.scope;
     const now = DateTime.utc().toJSDate();
@@ -77,8 +73,8 @@ router.get("/", async (req, res, next) => {
 
 router.get("/:id", async (req, res, next) => {
   try {
-    const booking = await prisma.booking.findUnique({
-      where: { id: req.params.id },
+    const booking = await prisma.booking.findFirst({
+      where: { id: req.params.id, hostUserId: req.user.id },
       include: {
         eventType: {
           select: {
@@ -115,8 +111,8 @@ router.get("/:id", async (req, res, next) => {
 
 router.post("/:id/cancel", async (req, res, next) => {
   try {
-    const existing = await prisma.booking.findUnique({
-      where: { id: req.params.id },
+    const existing = await prisma.booking.findFirst({
+      where: { id: req.params.id, hostUserId: req.user.id },
       include: {
         eventType: {
           select: { title: true, slug: true },

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   createEventType,
   deleteEventType,
+  getAuthMe,
   getEventTypes,
   setEventTypeActive,
   updateEventType,
@@ -12,8 +13,8 @@ const INITIAL_FORM = {
   description: "",
   durationMinutes: "30",
 };
-const URL_PREFIX = "https://cal.com/aditi-singh-y8hgdr/";
-const PUBLIC_PATH_PREFIX = "/aditi-singh-y8hgdr/";
+const URL_PREFIX = "https://cal.com/";
+const PUBLIC_PATH_PREFIX = "/";
 const ALLOWED_DESCRIPTION_TAGS = new Set(["B", "STRONG", "I", "EM", "BR", "P", "DIV"]);
 
 function toSlug(value) {
@@ -82,6 +83,7 @@ export default function EventTypesPage() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [menuOpenId, setMenuOpenId] = useState(null);
+  const [hostHandle, setHostHandle] = useState("");
   const descriptionEditorRef = useRef(null);
 
   async function loadEventTypes() {
@@ -99,6 +101,19 @@ export default function EventTypesPage() {
 
   useEffect(() => {
     loadEventTypes();
+  }, []);
+
+  useEffect(() => {
+    async function loadHandle() {
+      try {
+        const me = await getAuthMe();
+        setHostHandle(me.handle ?? "");
+      } catch {
+        setHostHandle("");
+      }
+    }
+
+    loadHandle();
   }, []);
 
   const filteredEventTypes = useMemo(() => {
@@ -206,7 +221,7 @@ export default function EventTypesPage() {
   }
 
   async function handleCopyLink(slug) {
-    const link = `${window.location.origin}${PUBLIC_PATH_PREFIX}${slug}`;
+    const link = `${window.location.origin}${PUBLIC_PATH_PREFIX}${hostHandle}/${slug}`;
     try {
       await navigator.clipboard.writeText(link);
     } catch {
@@ -215,7 +230,7 @@ export default function EventTypesPage() {
   }
 
   function handleOpenBooking(slug) {
-    const link = `${window.location.origin}${PUBLIC_PATH_PREFIX}${slug}`;
+    const link = `${window.location.origin}${PUBLIC_PATH_PREFIX}${hostHandle}/${slug}`;
     window.open(link, "_blank", "noopener,noreferrer");
   }
 
@@ -275,7 +290,9 @@ export default function EventTypesPage() {
   }, [menuOpenId]);
 
   const generatedSlug = useMemo(() => toSlug(form.title), [form.title]);
-  const urlPreview = `${URL_PREFIX}${generatedSlug}`;
+  const urlPreview = hostHandle
+    ? `${URL_PREFIX}${hostHandle}/${generatedSlug}`
+    : `${URL_PREFIX}${generatedSlug}`;
 
   return (
     <section className="page">
@@ -315,7 +332,7 @@ export default function EventTypesPage() {
                 <h3>{item.title}</h3>
                 <p className="muted">
                   {PUBLIC_PATH_PREFIX}
-                  {item.slug}
+                  {item.hostHandle ?? hostHandle}/{item.slug}
                 </p>
                 <span className="badge">{item.durationMinutes}m</span>
               </div>

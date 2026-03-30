@@ -1,7 +1,6 @@
 import express from "express";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../db.js";
-import { getDefaultHost } from "../services/default-host.js";
 import { eventTypeActiveSchema, eventTypeCreateSchema, eventTypeUpdateSchema } from "../validation.js";
 
 const router = express.Router();
@@ -18,6 +17,7 @@ function toEventTypePayload(eventType) {
     description: eventType.description ?? "",
     durationMinutes: eventType.durationMinutes,
     isActive: eventType.isActive,
+    hostHandle: eventType.user?.handle,
   };
 }
 
@@ -28,25 +28,13 @@ function duplicateUrlError(res) {
   });
 }
 
-async function getHostOr404(res) {
-  const host = await getDefaultHost(prisma);
-  if (!host) {
-    res.status(404).json({ code: "DEFAULT_HOST_NOT_FOUND" });
-    return null;
-  }
-
-  return host;
-}
-
-router.get("/", async (_req, res, next) => {
+router.get("/", async (req, res, next) => {
   try {
-    const host = await getHostOr404(res);
-    if (!host) {
-      return;
-    }
+    const host = req.user;
 
     const eventTypes = await prisma.eventType.findMany({
       where: { userId: host.id },
+      include: { user: { select: { handle: true } } },
       orderBy: [{ createdAt: "asc" }],
     });
 
@@ -58,10 +46,7 @@ router.get("/", async (_req, res, next) => {
 
 router.post("/", async (req, res, next) => {
   try {
-    const host = await getHostOr404(res);
-    if (!host) {
-      return;
-    }
+    const host = req.user;
 
     const parsedBody = eventTypeCreateSchema.safeParse(req.body);
     if (!parsedBody.success) {
@@ -99,10 +84,7 @@ router.post("/", async (req, res, next) => {
 
 router.patch("/:id", async (req, res, next) => {
   try {
-    const host = await getHostOr404(res);
-    if (!host) {
-      return;
-    }
+    const host = req.user;
 
     const parsedBody = eventTypeUpdateSchema.safeParse(req.body);
     if (!parsedBody.success) {
@@ -140,10 +122,7 @@ router.patch("/:id", async (req, res, next) => {
 
 router.patch("/:id/active", async (req, res, next) => {
   try {
-    const host = await getHostOr404(res);
-    if (!host) {
-      return;
-    }
+    const host = req.user;
 
     const parsedBody = eventTypeActiveSchema.safeParse(req.body);
     if (!parsedBody.success) {
@@ -173,10 +152,7 @@ router.patch("/:id/active", async (req, res, next) => {
 
 router.delete("/:id", async (req, res, next) => {
   try {
-    const host = await getHostOr404(res);
-    if (!host) {
-      return;
-    }
+    const host = req.user;
 
     const existing = await prisma.eventType.findFirst({
       where: { id: req.params.id, userId: host.id },

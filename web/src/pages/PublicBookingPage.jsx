@@ -45,7 +45,7 @@ function formatMonthLabel(month) {
 }
 
 export default function PublicBookingPage() {
-  const { slug } = useParams();
+  const { handle, slug } = useParams();
   const navigate = useNavigate();
 
   const [eventType, setEventType] = useState(null);
@@ -70,7 +70,7 @@ export default function PublicBookingPage() {
       try {
         setLoadingEvent(true);
         setError("");
-        const event = await getPublicEvent(slug);
+        const event = await getPublicEvent(handle, slug);
         setEventType(event);
         setTimezone(event.host.timezone);
         setCalendarMonth(nextDateString().slice(0, 7));
@@ -82,7 +82,7 @@ export default function PublicBookingPage() {
     }
 
     loadEvent();
-  }, [slug]);
+  }, [handle, slug]);
 
   useEffect(() => {
     async function loadCalendar() {
@@ -93,7 +93,7 @@ export default function PublicBookingPage() {
       try {
         setLoadingCalendar(true);
         setError("");
-        const response = await getPublicCalendar(slug, calendarMonth, timezone);
+        const response = await getPublicCalendar(handle, slug, calendarMonth, timezone);
         const dates = response.dates ?? [];
         setAvailableDates(dates);
 
@@ -115,7 +115,7 @@ export default function PublicBookingPage() {
     }
 
     loadCalendar();
-  }, [slug, eventType, timezone, calendarMonth]);
+  }, [handle, slug, eventType, timezone, calendarMonth]);
 
   useEffect(() => {
     async function loadSlots() {
@@ -127,7 +127,7 @@ export default function PublicBookingPage() {
       try {
         setLoadingSlots(true);
         setError("");
-        const response = await getPublicSlots(slug, date, timezone);
+        const response = await getPublicSlots(handle, slug, date, timezone);
         setSlots(response.slots);
       } catch (requestError) {
         setError(requestError.message);
@@ -138,7 +138,7 @@ export default function PublicBookingPage() {
     }
 
     loadSlots();
-  }, [slug, eventType, timezone, date]);
+  }, [handle, slug, eventType, timezone, date]);
 
   const selectedSlotLabel = useMemo(() => {
     if (!selectedSlot) {
@@ -196,17 +196,21 @@ export default function PublicBookingPage() {
     try {
       setSubmitting(true);
       setError("");
-      const booking = await createPublicBooking(slug, {
+      const booking = await createPublicBooking(handle, slug, {
         name: name.trim(),
         email: email.trim(),
         startAt: selectedSlot.startAt,
         timezone,
       });
-      navigate(`/book/${slug}/confirmation/${booking.id}`, {
+      navigate(`/${handle}/${slug}/confirmation/${booking.id}`, {
         state: { booking, eventType },
       });
     } catch (requestError) {
-      setError(requestError.message);
+      if (requestError.code === "HOST_BOOKING_NOT_ALLOWED") {
+        setError("You cannot book your own event type.");
+      } else {
+        setError(requestError.message);
+      }
     } finally {
       setSubmitting(false);
     }

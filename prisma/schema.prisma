@@ -16,15 +16,32 @@ model User {
   id                String             @id @default(uuid()) @db.Uuid
   name              String
   email             String             @unique
+  handle            String             @unique
   timezone          String
+  passwordHash      String?            @map("password_hash")
   eventTypes        EventType[]
   availabilitySchedules AvailabilitySchedule[]
   availabilityRules AvailabilityRule[]
   hostBookings      Booking[]          @relation("HostBookings")
+  sessions          Session[]
   createdAt         DateTime           @default(now()) @map("created_at")
   updatedAt         DateTime           @updatedAt @map("updated_at")
 
   @@map("users")
+}
+
+model Session {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  tokenHash  String   @unique @map("token_hash")
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
 }
 
 model EventType {
@@ -33,7 +50,7 @@ model EventType {
   title           String
   description     String?
   durationMinutes Int       @map("duration_minutes")
-  slug            String    @unique
+  slug            String
   isActive        Boolean   @default(true) @map("is_active")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
@@ -41,6 +58,7 @@ model EventType {
   bookings        Booking[]
 
   @@index([userId])
+  @@unique([userId, slug])
   @@map("event_types")
 }
 

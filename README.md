@@ -1,187 +1,119 @@
-# Cal Clone (Node.js + PostgreSQL + React)
+# Cal.com (Node.js + PostgreSQL + React)
 
-This repository implements a deterministic Cal.com-style scheduler with:
+## Problem Statement
+Build a Cal.com-style scheduling app with authenticated hosts, public booking, and hard guarantees against double‑booking.
 
-- No-login admin/public model with a seeded default host
-- PostgreSQL-backed availability and bookings
-- Host-wide double-booking prevention at database level
-- Admin APIs for event types, bookings, and availability
-- React + Vite frontend (`/web`) with Event types, Bookings, Availability, and public booking flow
-- Seed data + integration tests
+## Core Features Implemented
+1. Event Types Management
+   - Create, edit, delete event types with title, description, duration, and URL slug
+   - List all event types on the dashboard
+   - Each event type has a unique public booking link
+2. Availability Settings
+   - Weekly day toggles and time slots per day
+   - Multiple slots per day with 15‑minute increments
+3. Public Booking Page
+   - Calendar view + available dates
+   - Time slots generated from availability and event duration
+   - Booking form (name + email)
+   - Double‑booking prevented
+   - Booking confirmation page with event details
+4. Bookings Dashboard
+   - Upcoming, past, cancelled scopes
+   - Cancel a booking
+
+## Additional Features
+- Email/password auth with server‑side sessions
+- Open signup + auto‑login
+- Per‑user admin data (event types, availability, bookings)
+- Host self‑booking is blocked
+
+## Key Guarantees / Edge Cases
+- **Double‑booking** blocked at DB level using a GIST exclusion constraint (prevents race conditions).
+- **Per‑user slugs**: duplicate event titles are allowed across different users, but not for the same user.
+- **Handle‑based URLs**: public links use `/{handle}/{eventSlug}` so they’re globally unique.
+- **Host self‑booking** returns `403 HOST_BOOKING_NOT_ALLOWED`.
+- **Availability rules** validated for overlaps and 15‑minute boundaries.
+- **UTC storage** for bookings; display converts to host/guest timezone.
+- **Slot boundaries** are `[start, end)` to allow back‑to‑back meetings.
 
 ## Tech Stack
+- Node.js + Express
+- PostgreSQL + Prisma
+- Luxon (timezones)
+- React + Vite
+- Vitest + Supertest (API tests)
 
-- Node.js + Express (API)
-- PostgreSQL
-- Prisma ORM
-- Luxon for timezone handling
-- React + Vite (frontend)
-- Vitest + Supertest for API integration tests
+## User Journey
+1. Host signs up → auto‑logged in.
+2. Host configures availability and creates event types.
+3. Host shares public booking link.
+4. Guest selects date/time → enters details → booking confirmed.
+5. Host cannot book their own event type.
 
-## Why double-booking is safe here
-
-The API does not rely only on app-layer checks. PostgreSQL enforces conflicts with an exclusion constraint:
-
-```sql
-EXCLUDE USING GIST (
-  host_user_id WITH =,
-  tstzrange(start_at, end_at, '[)') WITH &&
-)
-WHERE (status = 'confirmed')
-```
-
-This blocks overlapping confirmed bookings for the same host, even under concurrent requests.
-
-## Local Setup (Backend + DB)
-
-1. Install backend dependencies:
-
+## Local Setup
+### Backend + DB
 ```bash
 npm install
-```
-
-2. Create env file:
-
-```bash
 cp .env.example .env
-```
-
-3. Run migrations and generate Prisma client:
-
-```bash
 npm run prisma:generate
 npm run prisma:migrate
 ```
 
-4. Seed sample data:
-
+Optional seed (creates a default host, sample event types, availability, bookings):
 ```bash
 npm run prisma:seed
 ```
 
-5. Start API:
-
+Start API:
 ```bash
 npm run dev:api
 ```
 
-Server runs on `http://localhost:3000` by default.
-
-## Frontend Setup (`/web`)
-
-1. Install frontend dependencies:
-
+### Frontend
 ```bash
 npm --prefix web install
-```
-
-2. Start frontend dev server:
-
-```bash
 npm run dev:web
 ```
 
-Frontend runs on `http://localhost:5173` and proxies `/api` to backend `http://localhost:3000`.
-
-## Run Full Stack Locally
-
-Use two terminals:
-
-```bash
-# Terminal 1 (API)
-npm run dev:api
-```
-
-```bash
-# Terminal 2 (Frontend)
-npm run dev:web
-```
-
-Then open:
+### URLs
 - Admin UI: `http://localhost:5173/event-types`
-- Public booking example: `http://localhost:5173/book/intro-call`
+- Signup: `http://localhost:5173/signup`
+- Public booking: `http://localhost:5173/<handle>/<eventSlug>`
 
-## NPM Scripts
+## Environment Variables
+`.env.example` includes:
+- `DATABASE_URL`
+- `PORT`
+- `DEFAULT_HOST_EMAIL`
+- `DEFAULT_HOST_PASSWORD` (used by seed, default `password123`)
+- `SESSION_DAYS` (default 7)
 
-- `npm run dev:api` -> start backend in watch mode
-- `npm run dev:web` -> start React/Vite frontend
-- `npm run build:web` -> production build for frontend
-- `npm run prisma:generate` -> generate Prisma client
-- `npm run prisma:migrate` -> apply Prisma migrations
-- `npm run prisma:seed` -> seed default host/events/bookings
-- `npm test` -> run API integration tests
+## API Overview (Core)
+Auth:
+- `POST /api/auth/signup`
+- `POST /api/auth/login`
+- `POST /api/auth/logout`
+- `GET /api/auth/me`
 
-## Sample Seed Data
+Admin (auth required):
+- Event types CRUD + active toggle
+- Availability schedules CRUD
+- Bookings list + cancel
 
-- Host user: `host@calclone.local` (`Asia/Kolkata`)
-- Event types:
-  - `intro-call` (30 min)
-  - `deep-dive` (60 min)
-- Availability: Monday-Friday, 09:00-17:00
-- Bookings: past, upcoming, and cancelled sample entries
+Public:
+- `GET /api/public/:handle/:slug`
+- `GET /api/public/:handle/:slug/calendar?month=YYYY-MM&tz=...`
+- `GET /api/public/:handle/:slug/slots?date=YYYY-MM-DD&tz=...`
+- `POST /api/public/:handle/:slug/bookings`
+- `GET /api/public/:handle/:slug/bookings/:id`
+- `POST /api/public/:handle/:slug/bookings/:id/cancel`
 
-## API Endpoints
-
-- `GET /health`
-- `GET /api/event-types`
-- `POST /api/event-types`
-- `PATCH /api/event-types/:id`
-- `DELETE /api/event-types/:id`
-- `PATCH /api/event-types/:id/active`
-- `GET /api/availability?scheduleId=<id>`
-- `POST /api/availability/schedules`
-- `PUT /api/availability/schedules/:id`
-- `DELETE /api/availability/schedules/:id`
-- `GET /api/bookings?scope=upcoming|past|cancelled|all`
-- `GET /api/bookings/:id`
-- `POST /api/bookings/:id/cancel`
-- `GET /api/public/:slug` (public event details)
-- `GET /api/public/:slug/slots?date=YYYY-MM-DD&tz=Timezone`
-- `POST /api/public/:slug/bookings`
-
-### Create Booking Request
-
-```json
-{
-  "name": "Alice",
-  "email": "alice@example.com",
-  "startAt": "2026-03-28T10:00:00",
-  "timezone": "Asia/Kolkata"
-}
-```
-
-### Booking Responses
-
-- `201` booking confirmed
-- `409 { "code": "SLOT_UNAVAILABLE" }` on overlap/already booked
-- `422 { "code": "INVALID_SLOT" }` when outside availability/invalid time
-
-## Run Tests
-
-Integration tests require PostgreSQL running and reachable via `DATABASE_URL`.
-
+## Tests
 ```bash
 npm test
 ```
 
-Covered scenarios:
-
-- Successful booking creation
-- Parallel same-slot race: only one booking succeeds
-- Overlap conflict across different event types of the same host
-- Same slot across different hosts succeeds
-- Cancelled booking releases the slot
-- Slot listing hides booked slots
-- Timezone conversion persists UTC correctly
-- Event type CRUD and active toggle
-- Availability schedule create + save round-trip
-- Bookings scope filtering (upcoming/past/cancelled/all)
-
 ## Assumptions
-
-- No login UI, but schema is multi-host ready
-- Booking conflicts are host-wide (not event-type-only)
-- All stored booking times are UTC (`timestamptz`)
-- Slot boundaries are half-open `[start, end)` to allow adjacent meetings
-- Availability supports multiple named schedules and multiple slots per day
-- Admin sidebar intentionally includes only Event types, Bookings, and Availability
+- Open signup (no invite flow).
+- Public booking is available to guests; admin is always authenticated.
+- Additional booking notes are UI‑only (not stored).

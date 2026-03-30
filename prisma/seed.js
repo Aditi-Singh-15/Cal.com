@@ -1,4 +1,7 @@
 import { DateTime } from "luxon";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
+import { config } from "../src/config.js";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -18,13 +21,22 @@ function makeUtcFromHostDate({ hostTimezone, dayOffset, hour, minute, durationMi
 }
 
 async function main() {
+  const baseHandle =
+    "default-host-" + crypto.randomBytes(3).toString("hex");
   const host = await prisma.user.upsert({
     where: { email: "host@calclone.local" },
-    update: { name: "Default Host", timezone: "Asia/Kolkata" },
+    update: {
+      name: "Default Host",
+      timezone: "Asia/Kolkata",
+      handle: baseHandle,
+      passwordHash: await bcrypt.hash(config.defaultHostPassword, 10),
+    },
     create: {
       name: "Default Host",
       email: "host@calclone.local",
       timezone: "Asia/Kolkata",
+      handle: baseHandle,
+      passwordHash: await bcrypt.hash(config.defaultHostPassword, 10),
     },
   });
 

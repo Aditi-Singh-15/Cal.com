@@ -12,9 +12,19 @@ function zodIssuesToMessage(error) {
   return error.issues.map((issue) => issue.message).join(", ");
 }
 
-async function getEventTypeBySlug(slug) {
+async function getEventTypeBySlug(handle, slug) {
   return prisma.eventType.findUnique({
-    where: { slug },
+    where: {
+      userId_slug: {
+        userId: (
+          await prisma.user.findUnique({
+            where: { handle },
+            select: { id: true },
+          })
+        )?.id ?? "",
+        slug,
+      },
+    },
     include: { user: true },
   });
 }
@@ -47,9 +57,9 @@ async function getAvailabilityRules(userId) {
   };
 }
 
-router.get("/:slug", async (req, res, next) => {
+router.get("/:handle/:slug", async (req, res, next) => {
   try {
-    const eventType = await getEventTypeBySlug(req.params.slug);
+    const eventType = await getEventTypeBySlug(req.params.handle, req.params.slug);
     if (!eventType || !eventType.isActive) {
       return res.status(404).json({ code: "EVENT_TYPE_NOT_FOUND" });
     }
@@ -63,6 +73,8 @@ router.get("/:slug", async (req, res, next) => {
       durationMinutes: eventType.durationMinutes,
       host: {
         name: eventType.user.name,
+        email: eventType.user.email,
+        handle: eventType.user.handle,
         timezone: availability.timezone ?? eventType.user.timezone,
       },
     });
@@ -71,7 +83,7 @@ router.get("/:slug", async (req, res, next) => {
   }
 });
 
-router.get("/:slug/slots", async (req, res, next) => {
+router.get("/:handle/:slug/slots", async (req, res, next) => {
   try {
     const parsedQuery = slotsQuerySchema.safeParse(req.query);
     if (!parsedQuery.success) {
@@ -81,7 +93,7 @@ router.get("/:slug/slots", async (req, res, next) => {
       });
     }
 
-    const eventType = await getEventTypeBySlug(req.params.slug);
+    const eventType = await getEventTypeBySlug(req.params.handle, req.params.slug);
     if (!eventType || !eventType.isActive) {
       return res.status(404).json({ code: "EVENT_TYPE_NOT_FOUND" });
     }
@@ -119,7 +131,7 @@ router.get("/:slug/slots", async (req, res, next) => {
   }
 });
 
-router.get("/:slug/calendar", async (req, res, next) => {
+router.get("/:handle/:slug/calendar", async (req, res, next) => {
   try {
     const parsedQuery = calendarQuerySchema.safeParse(req.query);
     if (!parsedQuery.success) {
@@ -129,7 +141,7 @@ router.get("/:slug/calendar", async (req, res, next) => {
       });
     }
 
-    const eventType = await getEventTypeBySlug(req.params.slug);
+    const eventType = await getEventTypeBySlug(req.params.handle, req.params.slug);
     if (!eventType || !eventType.isActive) {
       return res.status(404).json({ code: "EVENT_TYPE_NOT_FOUND" });
     }
@@ -176,7 +188,7 @@ router.get("/:slug/calendar", async (req, res, next) => {
   }
 });
 
-router.post("/:slug/bookings", async (req, res, next) => {
+router.post("/:handle/:slug/bookings", async (req, res, next) => {
   try {
     const parsedBody = bookingRequestSchema.safeParse(req.body);
     if (!parsedBody.success) {
@@ -186,9 +198,16 @@ router.post("/:slug/bookings", async (req, res, next) => {
       });
     }
 
-    const eventType = await getEventTypeBySlug(req.params.slug);
+    const eventType = await getEventTypeBySlug(req.params.handle, req.params.slug);
     if (!eventType || !eventType.isActive) {
       return res.status(404).json({ code: "EVENT_TYPE_NOT_FOUND" });
+    }
+
+    if (req.user && req.user.id === eventType.userId) {
+      return res.status(403).json({
+        code: "HOST_BOOKING_NOT_ALLOWED",
+        message: "Hosts cannot book their own event types.",
+      });
     }
 
     const displayTimezone = parsedBody.data.timezone ?? eventType.user.timezone;
@@ -247,6 +266,7 @@ router.post("/:slug/bookings", async (req, res, next) => {
         durationMinutes: eventType.durationMinutes,
         hostUserId: booking.hostUserId,
         hostName: eventType.user.name,
+        hostEmail: eventType.user.email,
         hostTimezone: eventType.user.timezone,
         status: booking.status,
         bookerName: booking.bookerName,
@@ -264,6 +284,95 @@ router.post("/:slug/bookings", async (req, res, next) => {
 
       throw error;
     }
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get("/:handle/:slug/bookings/:id", async (req, res, next) => {
+  try {
+    const eventType = await getEventTypeBySlug(req.params.handle, req.params.slug);
+    if (!eventType) {
+      return res.status(404).json({ code: "EVENT_TYPE_NOT_FOUND" });
+    }
+
+    const booking = await prisma.booking.findFirst({
+      where: {
+        id: req.params.id,
+        eventTypeId: eventType.id,
+      },
+      include: {
+        hostUser: {
+          select: {
+            name: true,
+            email: true,
+            timezone: true,
+          },
+        },
+      },
+    });
+
+    if (!booking) {
+      return res.status(404).json({ code: "BOOKING_NOT_FOUND" });
+    }
+
+    return res.json({
+      id: booking.id,
+      eventTypeId: booking.eventTypeId,
+      eventTitle: eventType.title,
+      eventSlug: eventType.slug,
+      durationMinutes: eventType.durationMinutes,
+      hostUserId: booking.hostUserId,
+      hostName: booking.hostUser.name,
+      hostTimezone: booking.hostUser.timezone,
+      status: booking.status,
+      bookerName: booking.bookerName,
+      bookerEmail: booking.bookerEmail,
+      startAt: booking.startAt.toISOString(),
+      endAt: booking.endAt.toISOString(),
+      host: booking.hostUser,
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.post("/:handle/:slug/bookings/:id/cancel", async (req, res, next) => {
+  try {
+    const eventType = await getEventTypeBySlug(req.params.handle, req.params.slug);
+    if (!eventType) {
+      return res.status(404).json({ code: "EVENT_TYPE_NOT_FOUND" });
+    }
+
+    const booking = await prisma.booking.findFirst({
+      where: {
+        id: req.params.id,
+        eventTypeId: eventType.id,
+      },
+    });
+
+    if (!booking) {
+      return res.status(404).json({ code: "BOOKING_NOT_FOUND" });
+    }
+
+    if (booking.status === "cancelled") {
+      return res.json({
+        id: booking.id,
+        status: booking.status,
+        cancelledAt: booking.cancelledAt?.toISOString() ?? null,
+      });
+    }
+
+    const updated = await prisma.booking.update({
+      where: { id: booking.id },
+      data: { status: "cancelled", cancelledAt: new Date() },
+    });
+
+    return res.json({
+      id: updated.id,
+      status: updated.status,
+      cancelledAt: updated.cancelledAt?.toISOString() ?? null,
+    });
   } catch (error) {
     return next(error);
   }

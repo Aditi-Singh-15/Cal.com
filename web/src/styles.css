@@ -33,22 +33,24 @@ button {
 
 .app-shell {
   display: grid;
-  grid-template-columns: 250px 1fr;
+  grid-template-columns: 240px 1fr;
   min-height: 100vh;
 }
 
 .sidebar {
   border-right: 1px solid var(--border);
   background: #0b0d12;
-  padding: 20px 14px;
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
 }
 
 .sidebar-profile {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 22px;
-  padding: 8px;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 4px 6px;
 }
 
 .avatar {
@@ -58,31 +60,71 @@ button {
   display: grid;
   place-items: center;
   font-weight: 600;
+  font-size: 13px;
   background: linear-gradient(120deg, #ef4d7a, #8f6bff);
+  position: relative;
+}
+
+.status-dot {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #2ecc71;
+  border: 2px solid #0b0d12;
+}
+
+.profile-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .profile-name {
   margin: 0;
-  font-size: 20px;
+  font-size: 15px;
 }
 
-.profile-subtitle {
-  margin: 0;
+.profile-caret {
   font-size: 12px;
   color: var(--muted);
 }
 
 .sidebar-nav {
   display: grid;
-  gap: 8px;
+  gap: 6px;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 12px 6px 6px;
+}
+
+.logout-link {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  padding: 0;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.logout-link:hover {
+  color: #f0f2f6;
 }
 
 .sidebar-link {
   color: #c4c9d3;
   text-decoration: none;
-  padding: 12px 14px;
-  border-radius: 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
   border: 1px solid transparent;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
 }
 
 .sidebar-link:hover {
@@ -92,6 +134,24 @@ button {
 .sidebar-link.active {
   background: #2a2d35;
   color: #fff;
+}
+
+.sidebar-icon {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  color: #cfd5df;
+}
+
+.sidebar-icon svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .content {
@@ -880,6 +940,21 @@ textarea {
 .public-card h1,
 .public-card h2 {
   margin: 0;
+}
+
+.login-card {
+  width: min(420px, 100%);
+  margin: 0 auto;
+}
+
+.auth-switch {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.auth-switch a {
+  color: #f0f2f6;
 }
 
 .calendar-header {

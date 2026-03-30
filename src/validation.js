@@ -23,6 +23,18 @@ export const bookingRequestSchema = z.object({
   timezone: timezoneSchema.optional(),
 });
 
+export const loginSchema = z.object({
+  email: z.string().trim().email("valid email is required"),
+  password: z.string().trim().min(1, "password is required"),
+});
+
+export const signupSchema = z.object({
+  name: z.string().trim().min(1, "name is required").max(120, "name is too long"),
+  email: z.string().trim().email("valid email is required"),
+  password: z.string().trim().min(6, "password must be at least 6 characters"),
+  timezone: timezoneSchema.optional(),
+});
+
 const slugSchema = z
   .string()
   .trim()

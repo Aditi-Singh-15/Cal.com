@@ -5,9 +5,36 @@ import eventTypesRouter from "./routes/event-types.js";
 import publicRouter from "./routes/public.js";
 import authRouter from "./routes/auth.js";
 import { attachUser, requireAuth } from "./middleware/auth.js";
+import { config } from "./config.js";
 
 export function createApp() {
   const app = express();
+
+  const allowedOrigins = config.frontendOrigin
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin && allowedOrigins.includes(origin)) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+      res.setHeader("Vary", "Origin");
+      res.setHeader("Access-Control-Allow-Credentials", "true");
+      res.setHeader(
+        "Access-Control-Allow-Headers",
+        "Content-Type, Authorization",
+      );
+      res.setHeader(
+        "Access-Control-Allow-Methods",
+        "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+      );
+      if (req.method === "OPTIONS") {
+        return res.sendStatus(204);
+      }
+    }
+    return next();
+  });
 
   app.use(express.json());
   app.use(attachUser);

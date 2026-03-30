@@ -27,17 +27,19 @@ function hashToken(token) {
 export function setSessionCookie(res, token) {
   const maxAgeSeconds = config.sessionDays * 24 * 60 * 60;
   const secure = config.env === "production" ? " Secure;" : "";
+  const sameSite = config.env === "production" ? "None" : "Lax";
   res.setHeader(
     "Set-Cookie",
-    `sid=${token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${maxAgeSeconds};${secure}`,
+    `sid=${token}; HttpOnly; Path=/; SameSite=${sameSite}; Max-Age=${maxAgeSeconds};${secure}`,
   );
 }
 
 export function clearSessionCookie(res) {
   const secure = config.env === "production" ? " Secure;" : "";
+  const sameSite = config.env === "production" ? "None" : "Lax";
   res.setHeader(
     "Set-Cookie",
-    `sid=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0;${secure}`,
+    `sid=; HttpOnly; Path=/; SameSite=${sameSite}; Max-Age=0;${secure}`,
   );
 }
 

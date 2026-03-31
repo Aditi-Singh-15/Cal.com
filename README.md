@@ -3,6 +3,9 @@
 ## Problem Statement
 Build a Cal.com-style scheduling app with authenticated hosts, public booking, and hard guarantees against double‑booking.
 
+## System Architecture
+![System architecture](docs/Architecture_Diagram.png)
+
 ## Core Features Implemented
 1. Event Types Management
    - Create, edit, delete event types with title, description, duration, and URL slug
